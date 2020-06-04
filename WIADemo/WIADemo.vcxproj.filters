@@ -33,6 +33,9 @@
     <ClCompile Include="WIADemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <QtUic Include="ControlDlg.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -41,12 +44,18 @@
     <ClCompile Include="DeviceModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ControlDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="WIADemo.qrc" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="DeviceModel.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="ControlDlg.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

@@ -1,4 +1,5 @@
 #include "WIADemo.h"
+#include "ControlDlg.h"
 
 WIADemo::WIADemo(QWidget *parent)
     : QMainWindow(parent)
@@ -14,6 +15,7 @@ WIADemo::WIADemo(QWidget *parent)
 	// Create WIA Device Manager instance
 	m_pWiaDevMgr = nullptr;
 	hResult = CoCreateInstance(CLSID_WiaDevMgr, NULL, CLSCTX_LOCAL_SERVER, IID_IWiaDevMgr, (void**)&m_pWiaDevMgr);
+
 	if (hResult == S_OK)
 	{
 		hResult = m_pWiaDevMgr->EnumDeviceInfo(WIA_DEVINFO_ENUM_ALL, &pIEnum);
@@ -66,30 +68,80 @@ WIADemo::WIADemo(QWidget *parent)
 	}
 	else
 	{
-		QMessageBox::critical(this, QString("Error"), QString("CoCreateInstance failed!"));
+		QMessageBox::critical(this, QString("Error"), QString("CoCreateInstance WIA failed!"));
 	}
 	
 	// Release COM interface.
 	if (pWiaPropertyStorage) pWiaPropertyStorage->Release();
 	if (pIEnum) pIEnum->Release();
+
+	//create wpd device manager
+	hResult = CoCreateInstance(CLSID_PortableDeviceManager, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&m_pPortableDeviceManager));
+	if (SUCCEEDED(hResult))
+	{
+		DWORD cPnPDeviceIDs = 0;
+		hResult = m_pPortableDeviceManager->GetDevices(nullptr, &cPnPDeviceIDs);
+		if (SUCCEEDED(hResult) && cPnPDeviceIDs > 0)
+		{
+			LPWSTR *pPnpDeviceIDs = new (std::nothrow) LPWSTR[cPnPDeviceIDs];
+			if (pPnpDeviceIDs != nullptr)
+			{
+				hResult = m_pPortableDeviceManager->GetDevices(pPnpDeviceIDs, &cPnPDeviceIDs);
+				if (SUCCEEDED(hResult))
+				{
+					for (DWORD i = 0; i < cPnPDeviceIDs; ++i)
+					{
+						IPortableDevice* pDevice = nullptr;
+						IPortableDeviceValues* pDeviceValues = nullptr;
+						hResult = CoCreateInstance(CLSID_PortableDeviceFTM, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pDevice));
+						HRESULT hr = CoCreateInstance(CLSID_PortableDeviceValues, NULL, CLSCTX_INPROC_SERVER, IID_IPortableDeviceValues, (VOID**)&pDeviceValues);
+						if (FAILED(hResult) || FAILED(hr)) continue;
+						hResult = pDevice->Open(pPnpDeviceIDs[i], pDeviceValues);
+						if(FAILED(hResult)) continue;
+						DWORD cchDeviceFriendlyName = 0;
+						hResult = m_pPortableDeviceManager->GetDeviceFriendlyName(pPnpDeviceIDs[i], nullptr, &cchDeviceFriendlyName);
+						if (FAILED(hResult)) continue;
+						WCHAR* pDeviceFriendlyName = new WCHAR[cchDeviceFriendlyName + 1];
+						hResult = m_pPortableDeviceManager->GetDeviceFriendlyName(pPnpDeviceIDs[i], pDeviceFriendlyName, &cchDeviceFriendlyName);
+						pDeviceFriendlyName[cchDeviceFriendlyName] = '\0';
+						
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		QMessageBox::critical(this, QString("Error"), QString("CoCreateInstance WPD failed!"));
+	}
     
     for (int i = 0; i < m_devices.size(); ++i)
     {
 		QSharedPointer<DeviceModel> dev = m_devices.at(i);
+		
 		ui.listWidget->addItem(dev->GetDeviceName());
     }
 
-	connect(this, &WIADemo::destroyed, this, &WIADemo::Uninitialize);
+	connect(ui.listWidget, &QListWidget::itemDoubleClicked, this, &WIADemo::ItemDoubleClickedSlot);
 }
 
-void WIADemo::Uninitialize()
+WIADemo::~WIADemo()
 {
+	m_devices.clear();
 	if (m_pWiaDevMgr) m_pWiaDevMgr->Release();
-	CoUninitialize();
+	//CoUninitialize();
 }
 
 void WIADemo::resizeEvent(QResizeEvent* ev)
 {
 	QSize size = this->size();
 	ui.listWidget->setGeometry(0, 0, size.width(), size.height());
+}
+
+void WIADemo::ItemDoubleClickedSlot(QListWidgetItem* item)
+{
+	int index = ui.listWidget->row(item);
+	QSharedPointer<DeviceModel> dev = m_devices.at(index);
+	ControlDlg* dlg = new ControlDlg(dev, this);
+	dlg->show();
 }

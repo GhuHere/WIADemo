@@ -83,14 +83,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <QtRcc Include="WIADemo.qrc" />
+    <QtUic Include="ControlDlg.ui" />
     <QtUic Include="WIADemo.ui" />
     <QtMoc Include="WIADemo.h" />
+    <ClCompile Include="ControlDlg.cpp" />
     <ClCompile Include="DeviceModel.cpp" />
     <ClCompile Include="WIADemo.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="DeviceModel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="ControlDlg.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
